@@ -1,0 +1,446 @@
+---
+title: "Taxi Analysis"
+---
+
+In this project, I worked with r's taxi dataset, one of its many preloaded datasets. My goal with the project are as follows: a) to create a model capable of accurately predicting if a passenger will tip or not and b) to understand if tipping varies by taxi company
+
+## Downloading Data and Packages
+
+Our first step, as always, is to install the data and other required packages.
+
+```{r, output=FALSE}
+#Setting a CRAN mirror
+options(repos = c(CRAN = "https://cran.r-project.org"))
+
+library(modeldata)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+
+data(taxi)
+```
+
+# Exploratory Data Analysis
+
+Next, we conduct some exporatory data analysis. From our basic examination of the dataset, we see that it includes 7 variables and 10000 observations. The variables are as follows.
+
+-   Tip: A binary variable recording if a passenger tipped or not
+
+-   Distance: A double recording the distance of the trip
+
+-   Company: A factor recording which company provided the ride
+
+-   Local: A binary variable recording if a passenger is a local
+
+-   Dow: A factor recording the day of the week
+
+-   Month: A factor recording what month of the year it is
+
+-   Hour: A integer recroding what hour of the day it is, operating on a single 24 hour cycle rather than a AM/PM cycle.
+
+```{r}
+dim(taxi)
+glimpse(taxi)
+```
+
+## Understanding our binary variables
+
+It is clear from our basic exploration that the vast majority (92%) of riders do indeed tip. As a result, it may be of more valuable to predict when they do not.
+
+```{r}
+#Absolute Number
+ggplot(taxi, aes(x = tip)) +
+  geom_bar() +
+  labs(title = "How Often Do Riders Tip?", x = "Tipped", y = "Count")
+
+#Percentage
+ggplot(taxi, aes(x = "", fill = tip)) +
+  geom_bar(position = "fill", width = 0.5) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Overall Tipping Rate",
+       x = "", 
+       y = "Percentage",
+       fill = "Tip") +
+  theme_minimal()
+
+#Generating numerical results
+taxi |>
+  summarise(
+    total_rides = n(),
+    tipped_rides = sum(tip == "yes", na.rm = TRUE),
+    tip_rate_percent = mean(tip == "yes", na.rm = TRUE) * 100
+  )
+```
+
+It also becomes clear that the majority of passengers (81.17%) are non-locals. This makes sense, as locals likely already have some method of transportation secured that is not a taxi. However, locals still take a notable number of rides (18.83%), likely in emergencies/other exceptional situations.
+
+```{r}
+#Absolute Number
+ggplot(taxi, aes(x = local)) +
+  geom_bar() +
+  labs(title = "Distribution of Passenger Origins", x = "Local?", y = "Count")
+
+#Percentage
+ggplot(taxi, aes(x = "", fill = local)) +
+  geom_bar(position = "fill", width = 0.5) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Overall Passenger Origins",
+       x = "", 
+       y = "Percentage",
+       fill = "Local") +
+  theme_minimal()
+
+#Generating numerical results
+taxi |>
+  summarise(
+    total_rides = n(),
+    local_rides = sum(local == "yes", na.rm = TRUE),
+    local_ride_percent = mean(local == "yes", na.rm = TRUE) * 100
+  )
+```
+
+## Understanding our non-binary variables
+
+From our basic visualizations, it becomes clear that distance is highly bipolar and right-tailed, with most rides incredibly short (under five miles) but with a second cluster nearly the 16 mile market. Distance has a median of 1.78 miles, mean of 6.22 miles and standard deviation of 7.38 miles.
+
+```{r}
+ggplot(taxi, aes(x = distance)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "white", alpha = 0.7) +
+  labs(title = "Distribution of Taxi Trip Distance",
+       x = "Distance",
+       y = "Count") +
+  theme_minimal()
+
+ggplot(taxi, aes(x = distance)) +
+  geom_boxplot(fill = "lightblue", alpha = 0.7) +
+  labs(title = "Distribution of Taxi Trip Distance",
+       y = "Distance") +
+  theme_minimal()
+
+taxi |>
+  summarise(
+    count = n(),
+    min_distance = min(distance, na.rm = TRUE),
+    q1 = quantile(distance, 0.25, na.rm = TRUE),
+    median = median(distance, na.rm = TRUE),
+    mean = round(mean(distance, na.rm = TRUE), 2),
+    q3 = quantile(distance, 0.75, na.rm = TRUE),
+    max_distance = max(distance, na.rm = TRUE),
+    std_dev = round(sd(distance, na.rm = TRUE), 2),
+    missing_values = sum(is.na(distance))
+  )
+```
+
+We have a total of six taxi companies in our data set (Chicago Independents, City Service, Sun Taxi, Flash Cab, Taxicab Insurance Agency Llc, and Taxi Affiliation Services) as well as a generic catch-all for other companies/non-company rides. Our data set is largely uniform with the exception of the "other" category, which dominates with \~27% of the business.
+
+```{r}
+#Absolute Number
+ggplot(taxi, aes(x = company)) +
+  geom_bar() +
+  labs(title = "Distribution of Taxi Company", x = "Company", y = "Count") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#Percentage
+ggplot(taxi, aes(x = "", fill = company)) +
+  geom_bar(position = "fill", width = 0.5) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Overall Company Composition",
+       x = "", 
+       y = "Percentage",
+       fill = "Company") +
+  theme_minimal()
+
+#Generating numerical results
+taxi |>
+  group_by(company) |>
+  summarise(
+    total_rides = n(),
+  ) |>
+  mutate(
+    percentage = total_rides/sum(total_rides)
+  ) |>
+  select(company, percentage)
+```
+
+Our dataset includes all seven days of the week, albeit not in a uniform distribution. Instead, Taxi usage peaks on Thursdays (which are responsible for \~20% of total traffic) and is at its lowest on the weekends.
+
+```{r}
+#Absolute Number
+ggplot(taxi, aes(x = dow)) +
+  geom_bar() +
+  labs(title = "Distribution of Day of Week", x = "Day of Week", y = "Count") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#Percentage
+ggplot(taxi, aes(x = "", fill = dow)) +
+  geom_bar(position = "fill", width = 0.5) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Day of Week Composition",
+       x = "", 
+       y = "Percentage",
+       fill = "Company") +
+  theme_minimal()
+
+#Generating numerical results
+taxi |>
+  group_by(dow) |>
+  summarise(
+    total_days = n(),
+  ) |>
+  mutate(
+    percentage = total_days/sum(total_days)
+  ) |>
+  select(dow, percentage)
+```
+
+We only have the first four days of the month in our dataset, and it is clear that the later months are busier than the earlier ones. March and April are both at \~30% of total rides each, versus 16% for January and 20% for February.
+
+```{r}
+#Absolute Number
+ggplot(taxi, aes(x = month)) +
+  geom_bar() +
+  labs(title = "Distribution of Month", x = "Month", y = "Count") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#Percentage
+ggplot(taxi, aes(x = "", fill = month)) +
+  geom_bar(position = "fill", width = 0.5) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Overall Month Composition",
+       x = "", 
+       y = "Percentage",
+       fill = "Month") +
+  theme_minimal()
+
+#Generating numerical results
+taxi |>
+  group_by(month) |>
+  summarise(
+    total_rides = n(),
+  ) |>
+  mutate(
+    percentage = total_rides/sum(total_rides)
+  ) |>
+  select(month, percentage)
+```
+
+It is clear that the majority of flights happen during what I would label "normal daytime hours." Indeed, the mean and median times are 14.18 and 15 hours respectively, with a standard deviation of 4.36 hours.
+
+```{r}
+#Absolute Number
+ggplot(taxi, aes(x = hour)) +
+  geom_bar() +
+  labs(title = "Distribution of Hours", x = "Hour", y = "Count") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#Generating numerical results
+taxi |>
+  group_by(hour) |>
+  summarise(
+    total_rides = n(),
+  ) |>
+  mutate(
+    percentage = total_rides/sum(total_rides)
+  ) |>
+  select(hour, percentage)
+
+taxi |>
+  summarise(
+    count = n(),
+    min_distance = min(hour, na.rm = TRUE),
+    q1 = quantile(hour, 0.25, na.rm = TRUE),
+    median = median(hour, na.rm = TRUE),
+    mean = round(mean(hour, na.rm = TRUE), 2),
+    q3 = quantile(hour, 0.75, na.rm = TRUE),
+    max_distance = max(hour, na.rm = TRUE),
+    std_dev = round(sd(hour, na.rm = TRUE), 2),
+    missing_values = sum(is.na(hour))
+  )
+```
+
+# Predicting Tip
+
+## What factor matters most?
+
+First, it is valuable to understand the extent to which each variable can help us predict the changes in tip/the likelihood of a tip. Since we're dealing with a binomial problem rather than a simple numerical prediction, we can't rely on R^2^. Instead, I'm choosing to rely on a metric called Likelihood Ratio Chi-Square, which captures how much each variable reduces model deviance (with higher values equaling higher predictive power). From the results, it is clear that distance and company are the most powerful predictors of tip chance, followed by local. Day of week and month have some predictive power, while hour has little.
+
+```{r}
+#Downloading a new package to get pseudo R^2
+install.packages("pscl")
+library(pscl)
+
+#Fitting models
+model1 <- glm(tip ~ distance, data = taxi, family = binomial)
+model2 <- glm(tip ~ company, data = taxi, family = binomial)
+model3 <- glm(tip ~ local, data = taxi, family = binomial)
+model4 <- glm(tip ~ hour, data = taxi, family = binomial)
+model5 <- glm(tip ~ dow, data = taxi, family = binomial)
+model6 <- glm(tip ~ month, data = taxi, family = binomial)
+
+null_model <- glm(tip ~ 1, data = taxi, family = binomial)
+
+lr_results <- data.frame(
+  variable = c("distance", "company", "local", "hour", "dow", "month"),
+  lr_chisq = c(
+    null_model$deviance - model1$deviance,  # distance
+    null_model$deviance - model2$deviance,  # company
+    null_model$deviance - model3$deviance,  # local
+    null_model$deviance - model4$deviance,  # hour
+    null_model$deviance - model5$deviance,  # dow
+    null_model$deviance - model6$deviance   # month
+  )
+)
+
+print(lr_results)
+
+```
+
+## What's the best model we can get?
+
+Since 92% of the rides result in a tip, our job is a little trickier. After all, a model that always guesses "yes" will be 92% accurate, a pretty good outcome. However, building a predictive model is still possible and important.
+
+### Lasso, Ridge, and Traditional
+
+First, we build a traditional logistic regression using three versions of optimization: Lasso, Ridge, and Traditional. These are all remarkably similar in error when compared using an AUC, but a Likelihood Ratio Chi-Square shows that the full OLS seems to win out. The best model uses every single variable to make its predictions.
+
+```{r, results="hide", echo=FALSE}
+library(glmnet)
+library(pROC)
+#Subsetting the data and removing rows with missing values
+data_clean <- na.omit(taxi[, c("tip", "distance", "company", "local", "hour", "dow", "month")])
+
+#Function to run Traditional OLS, Lasso, and Ridge regressions
+automating_model_selection <- function(data, target_var, predictors, alpha = 1) {
+
+  #Creating the formula for the target variable and predictors
+  full_formula <- as.formula(paste(target_var, "~", paste(predictors, collapse = " + ")))
+  
+  #Preparing the data matrix (X) and target vector (y)
+  X <- model.matrix(full_formula, data_clean)[, -1]  #Removing intercept column
+  y <- data_clean[[target_var]]
+  
+  #Traditional OLS Model
+  ols_model <- glm(full_formula, data = data_clean, family = binomial)
+  
+  #Lasso Regression
+  lasso_model <- cv.glmnet(X, y, alpha = 1, family = "binomial", type.measure = "deviance")
+  best_lambda_lasso <- lasso_model$lambda.min
+  final_lasso_model <- glmnet(X, y, alpha = 1, lambda = best_lambda_lasso, family = "binomial")
+  
+  #Ridge Regression
+  ridge_model <- cv.glmnet(X, y, alpha = 0, family = "binomial", type.measure = "deviance")
+  best_lambda_ridge <- ridge_model$lambda.min
+  final_ridge_model <- glmnet(X, y, alpha = 0, lambda = best_lambda_ridge, family = "binomial")
+  
+  #Returning the results
+  return(list(
+    ols_model = ols_model,
+    lasso_model = final_lasso_model,
+    ridge_model = final_ridge_model,
+    best_lambda_lasso = best_lambda_lasso,
+    best_lambda_ridge = best_lambda_ridge,
+    lasso_cv_model = lasso_model,
+    ridge_cv_model = ridge_model,
+    X = X  #Returning the model matrix for later use
+  ))
+}
+
+#Defining predictors and target variable
+predictors <- c("distance", "company", "local", "hour", "dow", "month")
+target_var <- "tip"
+
+#Running the function for Traditional OLS, Lasso, and Ridge
+model_results <- automating_model_selection(taxi, target_var, predictors)
+
+#Getting predicted probabilities for OLS, Lasso, and Ridge
+lasso_preds <- predict(model_results$lasso_model, newx = model_results$X, type = "response")
+ridge_preds <- predict(model_results$ridge_model, newx = model_results$X, type = "response")
+
+#Ensure the predictions are vectors (not matrices), and use the first column if needed
+lasso_preds <- lasso_preds[, 1]
+ridge_preds <- ridge_preds[, 1]
+
+#Calculating ROC and AUC for each model
+roc_ols <- roc(taxi[[target_var]], predict(model_results$ols_model, type = "response"))
+roc_lasso <- roc(taxi[[target_var]], lasso_preds)
+roc_ridge <- roc(taxi[[target_var]], ridge_preds)
+
+#Printing AUC for each model
+print(paste("AUC (OLS):", auc(roc_ols)))
+print(paste("AUC (Lasso):", auc(roc_lasso)))
+print(paste("AUC (Ridge):", auc(roc_ridge)))
+
+#Calculating the Deviance for the intercept-only model (Null model)
+null_formula <- as.formula(paste(target_var, "~ 1"))
+null_model <- glm(null_formula, data = na.omit(taxi[, c(target_var, predictors)]), family = binomial)
+
+#Creating the model comparison table
+model_comparison <- data.frame(
+  Model = c("Null (Intercept only)", "Full OLS", "Lasso", "Ridge"),
+  Deviance = numeric(4),
+  LR_ChiSq = numeric(4),
+  P_Value = numeric(4)
+)
+
+#Null model deviance (Intercept-only model)
+null_deviance <- null_model$deviance
+model_comparison$Deviance[1] <- null_deviance
+model_comparison$LR_ChiSq[1] <- 0
+model_comparison$P_Value[1] <- 1
+
+#OLS model deviance
+ols_deviance <- model_results$ols_model$deviance
+model_comparison$Deviance[2] <- ols_deviance
+model_comparison$LR_ChiSq[2] <- null_deviance - ols_deviance
+model_comparison$P_Value[2] <- pchisq(model_comparison$LR_ChiSq[2], df = length(predictors), lower.tail = FALSE)
+
+#Lasso deviance
+lasso_deviance <- -2 * sum(data_clean$tip * log(lasso_preds) + (1 - data_clean$tip) * log(1 - lasso_preds))
+model_comparison$Deviance[3] <- lasso_deviance
+model_comparison$LR_ChiSq[3] <- null_deviance - lasso_deviance
+model_comparison$P_Value[3] <- pchisq(model_comparison$LR_ChiSq[3], df = sum(coef(model_results$lasso_model) != 0) - 1, lower.tail = FALSE)
+
+#Ridge deviance  
+ridge_deviance <- -2 * sum(data_clean$tip * log(ridge_preds) + (1 - data_clean$tip) * log(1 - ridge_preds))
+model_comparison$Deviance[4] <- ridge_deviance
+model_comparison$LR_ChiSq[4] <- null_deviance - ridge_deviance
+model_comparison$P_Value[4] <- pchisq(model_comparison$LR_ChiSq[4], df = length(predictors), lower.tail = FALSE)
+
+#Adding significance labels based on p-values
+model_comparison$Significance <- ifelse(model_comparison$P_Value < 0.001, "***",
+                                       ifelse(model_comparison$P_Value < 0.01, "**",
+                                              ifelse(model_comparison$P_Value < 0.05, "*", "ns")))
+
+#Print the comparison table
+print(model_comparison)
+```
+
+# How Do Tips Vary By Route?
+
+Based on a just a single visualization, it becomes clear that from our sample alone that Flash Cab has the highest no tip rates and that tip rates do vary by company. Indeed, adding some simple calculations lets us see that Flash Cab has a 13% no tip rate, compared to 9% for Taxi Affiliation Services (the next highest) and a general level of about 7% no tips. The best performing (defined as the best chance of getting tips) is Chicago Independent.
+
+```{r}
+taxi$tip <- factor(taxi$tip, levels = c("no", "yes"))
+
+ggplot(taxi, aes(x = company, fill = tip)) +
+  geom_bar(position = "fill", width = 0.7) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Tipping Rate by Company",
+       x = "Company", 
+       y = "Percentage of Tips",
+       fill = "Tip") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+tip_stats <- taxi |> 
+  group_by(company) |> 
+  summarise(
+    n_total = n(),
+    n_no_tip = sum(tip == "no"),
+    non_tip_percentage = n_no_tip / n_total,
+    se = sqrt((non_tip_percentage * (1 - non_tip_percentage)) / n_total),
+    .groups = "drop"
+  )
+
+tip_stats
+```
