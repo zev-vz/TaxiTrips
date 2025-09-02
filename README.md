@@ -102,9 +102,7 @@ Used **Likelihood Ratio Chi-Square** to rank predictive power of each variable:
 ## 📁 Repository Structure
 ```
 🚕 TaxiTrips/
-├── 📖 README.md                 # This documentation
-├── 📊 Taxi Analysis.html        # Complete analysis report  
-├── 💾 data/                     # R's built-in taxi dataset
-├── 🧑‍💻 scripts/                  # R analysis scripts
-└── 📈 visualizations/           # Generated plots and charts
+├── README.md                 #This documentation
+├── Raw Code                  #The code used to generate the report
+└── Taxi Analysis.pdf         #Complete analysis report
 ```
