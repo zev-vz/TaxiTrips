@@ -4,9 +4,9 @@
 
 This project analyzes **R's preloaded taxi dataset** to predict passenger tipping behavior and examine variations across different taxi companies. Through comprehensive exploratory data analysis and logistic regression modeling, I discovered:
 
-- 🎉 **92.1%** of passengers tip their drivers
-- 📊 **Significant company variation**: 5.1% to 13.1% non-tip rates
-- 🚗 **Distance and company** are the strongest predictors of tipping behavior
+- **92.1%** of passengers tip their drivers
+- **Significant variation in tip rate by company**: 5.1% to 13.1% non-tip rates
+- **Distance and company** are the strongest predictors of tipping behavior
 
 ## 📊 Dataset Overview
 
