@@ -29,18 +29,20 @@ This project analyzes **R's preloaded taxi dataset** to predict passenger tippin
 
 | Variable | Description | Key Stats |
 |----------|-------------|-----------|
-| 💰 **Tip** | Binary indicator (yes/no) | 92.1% tip rate |
-| 📏 **Distance** | Trip distance in miles | Median: 1.78 miles, highly right-skewed 
-| 🏢 **Company** | 6 taxi companies + "other" category | 7 total categories |
-| 🏠 **Local** | Passenger origin | 81.2% non-local, 18.8% local |
-| 📅 **Temporal** | Day of week, month, hour | Full temporal coverage |
+| **Tip** | Binary indicator (yes/no) | 92.1% tip rate |
+| **Distance** | Trip distance in miles | Median: 1.78 miles, highly right-skewed 
+| **Company** | 6 taxi companies + "other" category | 7 total categories |
+| **Local** | Binary indication (local/not local) | 81.2% non-local, 18.8% local |
+| **Day** | Day of week | All seven days |
+| **Month** | Month | January through April |
+| **Hour** | Hour | Most hours of day, except for 3:00 a.m. |
 
 ---
 ### 🎯 Feature Importance Analysis
 
 Used **Likelihood Ratio Chi-Square** to rank predictive power of each variable:
 
-| Rank | Variable | Chi-Square Score | 📊 Impact |
+| Rank | Variable | Chi-Square Score | Impact |
 |------|----------|------------------|-----------|
 | 🥇 | **Company** | 55.5 | Strongest predictor |
 | 🥈 | **Distance** | 46.6 | Second strongest |
@@ -51,7 +53,7 @@ Used **Likelihood Ratio Chi-Square** to rank predictive power of each variable:
 
 ### ⚙️ Modeling Strategy
 - 🎯 **Primary Method**: Logistic Regression (optimal for binary classification)
-- 🔄 **Model Comparison**: Lasso, Ridge, and traditional OLS regression
+- 🔄 **Models Used**: Lasso, Ridge, and traditional OLS regression
 - 🏆 **Winner**: Traditional OLS model using all variables performed best
 - 📈 **Evaluation**: AUC comparison and Likelihood Ratio Chi-Square analysis
 
