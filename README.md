@@ -52,10 +52,10 @@ Used **Likelihood Ratio Chi-Square** to rank predictive power of each variable:
 | 6️⃣ | **Hour** | 0.5 | Weakest predictor |
 
 ### ⚙️ Modeling Strategy
-- 🎯 **Primary Method**: Logistic Regression (optimal for binary classification)
-- 🔄 **Models Used**: Lasso, Ridge, and traditional OLS regression
-- 🏆 **Winner**: Traditional OLS model using all variables performed best
-- 📈 **Evaluation**: AUC comparison and Likelihood Ratio Chi-Square analysis
+- **Primary Method**: Logistic Regression (optimal for binary classification)
+- **Models Used**: Lasso, Ridge, and traditional OLS regression
+- **Winner**: Traditional OLS model using all variables performed best
+- **Evaluation**: AUC comparison and Likelihood Ratio Chi-Square analysis
 
 ## 🏆 Key Findings
 
@@ -65,7 +65,7 @@ Used **Likelihood Ratio Chi-Square** to rank predictive power of each variable:
 
 <div align="center">
 
-| 🏢 Company | ❌ Non-Tip Rate | ✅ Tip Rate | 📊 Sample Size ||
+| Company | Non-Tip Rate | Tip Rate | Sample Size ||
 |------------|----------------|-------------|----------------|-|
 | **Chicago Independents** | **5.1%** | **94.9%** | 781 rides ||
 | Sun Taxi | 6.1% | 93.9% | 1,382 rides ||
@@ -77,29 +77,29 @@ Used **Likelihood Ratio Chi-Square** to rank predictive power of each variable:
 
 </div>
 
-### 👥 Passenger & Trip Patterns
+### Passenger & Trip Patterns
 
 <div align="center">
 
-| 📊 Metric | 📈 Finding ||
+| Metric | Finding ||
 |-----------|------------|-------------------|
-| 🌍 **Customer Base** | 81.2% non-local passengers|
-| 📅 **Peak Activity** | Thursday (19.6%) |
-| 🗓️ **Seasonal Trends** | March (31.4%) & April (31.8%) |
-| 📏 **Trip Distance** | Bimodal: <5 miles & ~16 miles ||
+| **Customer Base** | 81.2% non-local passengers|
+| **Peak Activity** | Thursday (19.6%) |
+| **Seasonal Trends** | March (31.4%) & April (31.8%) |
+| **Trip Distance** | Bimodal: <5 miles & ~16 miles ||
 
 </div>
 
 ---
-### 🏗️ Code Structure
-- 📥 **Data Loading**: R's built-in taxi dataset from modeldata package
-- 🔍 **Exploratory Analysis**: Comprehensive univariate and bivariate analysis
-- 📊 **Statistical Testing**: Likelihood Ratio Chi-Square for feature ranking
-- 🧠 **Modeling**: Logistic regression with multiple approaches
-- ✅ **Validation**: AUC-based performance evaluation
+### Code Structure
+- **Data Loading**: R's built-in taxi dataset from modeldata package
+- **Exploratory Analysis**: Comprehensive univariate and bivariate analysis
+- **Statistical Testing**: Likelihood Ratio Chi-Square for feature ranking
+- **Modeling**: Logistic regression with multiple approaches
+- **Validation**: AUC-based performance evaluation
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 ```
 🚕 TaxiTrips/
 ├── README.md                 #This documentation
